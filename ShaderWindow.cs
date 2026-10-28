@@ -24,8 +24,17 @@ class ShaderWindow : GameWindow
     {
         base.OnLoad();
 
-        // 1. Compile the shader code we were given
-        program = ShaderBuilder.Compile(fragmentCode);
+        // 1. Compile the shader code we were given. If it fails, stop before touching the desktop.
+        CompileResult result = ShaderBuilder.Compile(fragmentCode);
+        if (!result.Ok)
+        {
+            CompatibilityChecker.PrintCompileErrors(result.Log);
+            Console.WriteLine("The shader didn't compile, so your wallpaper was not changed.");
+            Close();
+            return;
+        }
+        Console.WriteLine("  [OK] Compiles natively (GLSL 4.30)");
+        program = result.Program;
         vao = GL.GenVertexArray();
 
         // 2. Remember the user's wallpaper, then move this window behind the icons

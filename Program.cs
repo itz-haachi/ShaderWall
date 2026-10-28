@@ -22,8 +22,10 @@ foreach (string a in args)
 }
 Console.WriteLine("FPS cap: " + (fpsCap == 0 ? "unlimited" : fpsCap.ToString()));
 
-// 1. Get the shader code: from a link, or from the local files
-string fragmentCode;
+// 1. Get the shader code: from a link, a saved API reply, or the local files
+string imageCode, commonCode;
+bool? multiPass = null;   // only known when the shader comes from the API
+
 if (url != null || jsonFile != null)
 {
     ShaderSource? src;
@@ -44,17 +46,29 @@ if (url != null || jsonFile != null)
     if (src == null) return;
 
     Console.WriteLine($"Loaded \"{src.Name}\" by {src.Author}  (tabs: {string.Join(", ", src.Tabs)})");
-    if (src.MultiPass) Console.WriteLine("Warning: multi-pass shader. Only the Image tab will run, so it may look wrong.");
-    if (src.UsesTextures) Console.WriteLine("Warning: uses iChannel inputs, which aren't supported yet.");
-
-    fragmentCode = ShaderBuilder.Build(src.ImageCode, src.CommonCode);
+    imageCode = src.ImageCode;
+    commonCode = src.CommonCode;
+    multiPass = src.MultiPass;
 }
 else
 {
-    fragmentCode = ShaderBuilder.LoadFromFiles("shader.glsl", "common.glsl");
+    if (!File.Exists("shader.glsl"))
+    {
+        Console.WriteLine("No shader.glsl found. Paste a shader's Image tab into shader.glsl first.");
+        return;
+    }
+    imageCode = File.ReadAllText("shader.glsl");
+    commonCode = File.Exists("common.glsl") ? File.ReadAllText("common.glsl") : "";
 }
 
-// 2. Create the window
+// 2. Check it before running (compiling is checked once the window exists)
+CheckReport report = CompatibilityChecker.CheckSource(imageCode, commonCode, multiPass);
+report.Print();
+if (!report.CanRun) return;
+
+string fragmentCode = ShaderBuilder.Build(imageCode, commonCode);
+
+// 3. Create the window
 var settings = new NativeWindowSettings()
 {
     ClientSize = new Vector2i(1280, 720),
