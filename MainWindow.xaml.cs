@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -19,6 +21,10 @@ public partial class MainWindow : Window
     int previewProgram;
     int previewVao;
     float previewTime;
+
+    // Saved shaders. An ObservableCollection tells the ListBox to refresh itself when items change.
+    readonly ObservableCollection<SavedShader> library = new(ShaderLibrary.Load());
+
     bool previewRunning;    // only true after Check + preview, and false while the wallpaper runs
     double infoTimer;       // update the info text 4 times a second, not every frame
 
@@ -40,6 +46,8 @@ public partial class MainWindow : Window
         // Start the preview's OpenGL context (4.3, the same version the wallpaper uses)
         Preview.Start(new GLWpfControlSettings { MajorVersion = 4, MinorVersion = 3 });
         PreviewInfo.Text = "Press Check + preview to run the preview";
+
+        LibraryList.ItemsSource = library;
         Closing += (sender, e) => StopWallpaper();   // closing the app stops the wallpaper cleanly
     }
 
@@ -159,6 +167,61 @@ public partial class MainWindow : Window
     }
 
     void Stop_Click(object sender, RoutedEventArgs e) => StopWallpaper();
+
+    // ---------- library ----------
+
+    void SaveShader_Click(object sender, RoutedEventArgs e)
+    {
+        string name = NameBox.Text.Trim();
+        if (name == "") name = "Untitled " + (library.Count + 1);
+
+        // Same name = update that shader; new name = add a new one
+        SavedShader? existing = library.FirstOrDefault(s => s.Name == name);
+        if (existing != null)
+        {
+            existing.Image = ImageBox.Text;
+            existing.Common = CommonBox.Text;
+            existing.Saved = DateTime.Now;
+        }
+        else
+        {
+            existing = new SavedShader { Name = name, Image = ImageBox.Text, Common = CommonBox.Text, Saved = DateTime.Now };
+            library.Add(existing);
+        }
+
+        ShaderLibrary.Save(library);
+        NameBox.Text = name;
+        LibraryList.SelectedItem = existing;
+        StatusText.Text = $"Saved \"{name}\"";
+    }
+
+    void DeleteShader_Click(object sender, RoutedEventArgs e)
+    {
+        if (LibraryList.SelectedItem is not SavedShader selected)
+        {
+            StatusText.Text = "Pick a shader in the library to delete";
+            return;
+        }
+
+        var answer = MessageBox.Show($"Delete \"{selected.Name}\" from the library?", "ShaderWall",
+                                     MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (answer != MessageBoxResult.Yes) return;
+
+        library.Remove(selected);
+        ShaderLibrary.Save(library);
+        StatusText.Text = $"Deleted \"{selected.Name}\"";
+    }
+
+    // Clicking a saved shader loads its code into the tabs
+    void LibraryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (LibraryList.SelectedItem is not SavedShader selected) return;
+
+        ImageBox.Text = selected.Image;
+        CommonBox.Text = selected.Common;
+        NameBox.Text = selected.Name;
+        OutputBox.Text = $"Loaded \"{selected.Name}\" (saved {selected.Saved:g}). Press Check + preview, or Set as wallpaper.";
+    }
 
     // ---------- helpers ----------
 
