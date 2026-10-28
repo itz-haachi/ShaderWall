@@ -11,15 +11,20 @@ class ShaderWindow : GameWindow
     int frames = 0;
     double fpsTimer = 0;
     public volatile bool quitRequested = false;
+    public bool showFps = false;   // turned on with: dotnet run -- --show-fps
 
-    public ShaderWindow(GameWindowSettings g, NativeWindowSettings n) : base(g, n) { }
+    readonly string fragmentCode;
+
+    public ShaderWindow(GameWindowSettings g, NativeWindowSettings n, string fragmentCode) : base(g, n)
+    {
+        this.fragmentCode = fragmentCode;
+    }
 
     protected override void OnLoad()
     {
         base.OnLoad();
 
-        // 1. Build and compile the shader
-        string fragmentCode = ShaderBuilder.LoadFromFiles("shader.glsl", "common.glsl");
+        // 1. Compile the shader code we were given
         program = ShaderBuilder.Compile(fragmentCode);
         vao = GL.GenVertexArray();
 
@@ -58,7 +63,7 @@ class ShaderWindow : GameWindow
         fpsTimer += args.Time;
         if (fpsTimer >= 1.0)
         {
-            Console.WriteLine("FPS: " + frames);
+            if (showFps) Console.WriteLine("FPS: " + frames);
             frames = 0;
             fpsTimer = 0;
         }

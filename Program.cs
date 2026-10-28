@@ -1,19 +1,68 @@
 ﻿using OpenTK.Windowing.Desktop;
 using OpenTK.Mathematics;
 
-// ShaderWall entry point: read settings, create the window, run it.
+// ShaderWall entry point.
+//   dotnet run                                   -> shader.glsl, 30 FPS
+//   dotnet run -- 60                             -> shader.glsl, 60 FPS (0 = unlimited)
+//   dotnet run -- https://www.shadertoy.com/view/XXXXXX     -> download that shader
+//   dotnet run -- https://www.shadertoy.com/view/XXXXXX 60  -> both
+//   dotnet run -- samples/sample.json            -> TEST MODE: a saved API reply, no key needed
+//   add --show-fps to any of these to print the frame rate every second
 
+int fpsCap = 30;
+string? url = null;
+string? jsonFile = null;
+bool showFps = false;
+foreach (string a in args)
+{
+    if (a == "--show-fps") showFps = true;
+    else if (int.TryParse(a, out int n)) fpsCap = n;
+    else if (a.Contains("shadertoy.com")) url = a;
+    else if (a.EndsWith(".json")) jsonFile = a;
+}
+Console.WriteLine("FPS cap: " + (fpsCap == 0 ? "unlimited" : fpsCap.ToString()));
+
+// 1. Get the shader code: from a link, or from the local files
+string fragmentCode;
+if (url != null || jsonFile != null)
+{
+    ShaderSource? src;
+    if (jsonFile != null)
+    {
+        src = ShaderLoader.FromJsonFile(jsonFile);
+    }
+    else
+    {
+        if (!File.Exists("apikey.txt"))
+        {
+            Console.WriteLine("Put your Shadertoy API key in a file called apikey.txt first.");
+            return;
+        }
+        string apiKey = File.ReadAllText("apikey.txt").Trim();
+        src = await ShaderLoader.FromUrlAsync(url!, apiKey);
+    }
+    if (src == null) return;
+
+    Console.WriteLine($"Loaded \"{src.Name}\" by {src.Author}  (tabs: {string.Join(", ", src.Tabs)})");
+    if (src.MultiPass) Console.WriteLine("Warning: multi-pass shader. Only the Image tab will run, so it may look wrong.");
+    if (src.UsesTextures) Console.WriteLine("Warning: uses iChannel inputs, which aren't supported yet.");
+
+    fragmentCode = ShaderBuilder.Build(src.ImageCode, src.CommonCode);
+}
+else
+{
+    fragmentCode = ShaderBuilder.LoadFromFiles("shader.glsl", "common.glsl");
+}
+
+// 2. Create the window
 var settings = new NativeWindowSettings()
 {
     ClientSize = new Vector2i(1280, 720),
     Title = "ShaderWall"
 };
-
-// FPS cap: 30 by default, or pass a number: dotnet run -- 60   (0 = unlimited)
-int fpsCap = args.Length > 0 ? int.Parse(args[0]) : 30;
-Console.WriteLine("FPS cap: " + (fpsCap == 0 ? "unlimited" : fpsCap.ToString()));
 var gameSettings = new GameWindowSettings() { UpdateFrequency = fpsCap };
-using var window = new ShaderWindow(gameSettings, settings);
+using var window = new ShaderWindow(gameSettings, settings, fragmentCode);
+window.showFps = showFps;
 
 // Ctrl+C asks the app to close cleanly instead of killing it
 Console.CancelKeyPress += (sender, e) =>
