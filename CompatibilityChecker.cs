@@ -1,4 +1,6 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 
 // A list of check results, printed as [OK] / [!] / [X] lines.
 class CheckReport
@@ -10,12 +12,15 @@ class CheckReport
     public void Warn(string text) => Items.Add(("!", text));
     public void Fail(string text) { Items.Add(("X", text)); CanRun = false; }
 
-    public void Print()
+    public override string ToString()
     {
-        Console.WriteLine("Compatibility check");
+        var sb = new StringBuilder("Compatibility check\n");
         foreach (var (mark, text) in Items)
-            Console.WriteLine($"  [{mark}] {text}");
+            sb.Append($"  [{mark}] {text}\n");
+        return sb.ToString();
     }
+
+    public void Print() => Console.Write(ToString());
 }
 
 // Looks at a shader before it runs, and explains compile errors in Shadertoy terms.
@@ -59,9 +64,12 @@ static class CompatibilityChecker
     // ShaderBuilder marks each part with "#line 1 <number>", so errors say which part they're in
     static readonly string[] PartNames = { "ShaderWall header", "Common tab", "Image tab", "ShaderWall footer" };
 
-    public static void PrintCompileErrors(string log)
+    public static void PrintCompileErrors(string log) => Console.Write(ExplainCompileErrors(log));
+
+    // Same explanation as text, so the app can show it too
+    public static string ExplainCompileErrors(string log)
     {
-        Console.WriteLine("  [X] Doesn't compile:");
+        var sb = new StringBuilder("  [X] Doesn't compile:\n");
         foreach (string raw in log.Split('\n'))
         {
             string line = raw.Trim();
@@ -70,9 +78,10 @@ static class CompatibilityChecker
             // Drivers write the position as "2(5)" (NVIDIA) or "2:5" (AMD, Intel): part 2, line 5
             Match m = Regex.Match(line, @"(\d+)[:(](\d+)");
             if (m.Success && int.TryParse(m.Groups[1].Value, out int part) && part < PartNames.Length)
-                Console.WriteLine($"      {PartNames[part]}, line {m.Groups[2].Value}:  {line}");
+                sb.Append($"      {PartNames[part]}, line {m.Groups[2].Value}:  {line}\n");
             else
-                Console.WriteLine("      " + line);
+                sb.Append("      " + line + "\n");
         }
+        return sb.ToString();
     }
 }

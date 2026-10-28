@@ -3,10 +3,12 @@
 // Decides whether the wallpaper can be seen, so rendering can pause when it can't.
 static class PowerManager
 {
-    public static bool IsWallpaperHidden()
+    // ownWindow = the wallpaper window itself, which must never count as "covering" the wallpaper
+    public static bool IsWallpaperHidden(IntPtr ownWindow)
     {
         IntPtr front = Win32.GetForegroundWindow();
         if (front == IntPtr.Zero) return false;
+        if (front == ownWindow) return false;
 
         // If the desktop itself is in front, the wallpaper is visible
         var name = new StringBuilder(256);

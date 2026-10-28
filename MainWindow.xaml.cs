@@ -1,15 +1,26 @@
 ﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using OpenTK.Graphics.OpenGL4;
+using OpenTK.Wpf;
 
 namespace ShaderWallApp;
 
-// The app window. It doesn't render anything itself: it writes the shader to files
-// and starts the ShaderWall engine (the console program) to check or run it.
+// The app window. It shows a live preview itself (GLWpfControl), and starts the
+// ShaderWall engine (the console program) to run the shader as the wallpaper.
 public partial class MainWindow : Window
 {
     Process? engine;   // the running wallpaper, if any
     readonly string workDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ShaderWall");
+
+    // Live preview state. GL calls only work inside Preview_OnRender, so new code waits in pendingCode.
+    string? pendingCode;
+    int previewProgram;
+    int previewVao;
+    float previewTime;
+    bool previewRunning;    // only true after Check + preview, and false while the wallpaper runs
+    double infoTimer;       // update the info text 4 times a second, not every frame
 
     const string StarterShader = """
         // Paste a Shadertoy Image tab here, or try this one
@@ -25,33 +36,86 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         ImageBox.Text = StarterShader;
+
+        // Start the preview's OpenGL context (4.3, the same version the wallpaper uses)
+        Preview.Start(new GLWpfControlSettings { MajorVersion = 4, MinorVersion = 3 });
+        PreviewInfo.Text = "Press Check + preview to run the preview";
         Closing += (sender, e) => StopWallpaper();   // closing the app stops the wallpaper cleanly
     }
 
     // ---------- buttons ----------
 
-    async void Check_Click(object sender, RoutedEventArgs e)
+    void Check_Click(object sender, RoutedEventArgs e) => RunCheck();
+
+    // Step 1 (no GPU): read the code and report problems.
+    // Step 2 (GPU): hand the code to the preview, which compiles it on its next frame.
+    void RunCheck()
     {
-        string? exe = FindEngine();
-        if (exe == null) return;
+        CheckReport report = CompatibilityChecker.CheckSource(ImageBox.Text, CommonBox.Text, null);
+        OutputBox.Text = report.ToString();
 
-        WriteShaderFiles();
-        StatusText.Text = "Checking...";
-        OutputBox.Text = "";
-
-        var info = new ProcessStartInfo(exe, "--check-only")
+        if (!report.CanRun)
         {
-            WorkingDirectory = workDir,
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
-        using Process p = Process.Start(info)!;
-        string output = await p.StandardOutput.ReadToEndAsync();
-        await p.WaitForExitAsync();
+            StatusText.Text = "Check failed: see the report below";
+            return;
+        }
 
-        OutputBox.Text = output;
-        StatusText.Text = p.ExitCode == 0 ? "Check passed" : "Check failed: see the report below";
+        pendingCode = ShaderBuilder.Build(ImageBox.Text, CommonBox.Text);
+        StatusText.Text = "Compiling...";
+    }
+
+    // Called by the GLWpfControl every frame, with its OpenGL context ready to use
+    void Preview_OnRender(TimeSpan delta)
+    {
+        if (pendingCode != null)
+        {
+            CompilePreview(pendingCode);
+            pendingCode = null;
+        }
+
+        // Size in real pixels (the window may be scaled, e.g. 125% on laptops)
+        DpiScale dpi = VisualTreeHelper.GetDpi(Preview);
+        int w = Math.Max(1, (int)(Preview.ActualWidth * dpi.DpiScaleX));
+        int h = Math.Max(1, (int)(Preview.ActualHeight * dpi.DpiScaleY));
+
+        GL.Viewport(0, 0, w, h);
+        GL.ClearColor(0f, 0f, 0f, 1f);
+        GL.Clear(ClearBufferMask.ColorBufferBit);
+        if (!previewRunning || previewProgram == 0) return;   // paused: just a black box
+
+        previewTime += (float)Math.Min(delta.TotalSeconds, 0.1);
+        GL.UseProgram(previewProgram);
+        GL.Uniform3(GL.GetUniformLocation(previewProgram, "iResolution"), (float)w, (float)h, 1f);
+        GL.Uniform1(GL.GetUniformLocation(previewProgram, "iTime"), previewTime);
+        GL.BindVertexArray(previewVao);
+        GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
+
+        infoTimer += delta.TotalSeconds;
+        if (infoTimer >= 0.25)
+        {
+            PreviewInfo.Text = $"{previewTime:0.0} s   ·   {w}×{h}";
+            infoTimer = 0;
+        }
+    }
+
+    void CompilePreview(string code)
+    {
+        if (previewVao == 0) previewVao = GL.GenVertexArray();
+
+        CompileResult result = ShaderBuilder.Compile(code);
+        if (!result.Ok)
+        {
+            OutputBox.AppendText(CompatibilityChecker.ExplainCompileErrors(result.Log));
+            StatusText.Text = "Check failed: see the report below";
+            return;   // keep showing the last shader that worked
+        }
+
+        if (previewProgram != 0) GL.DeleteProgram(previewProgram);
+        previewProgram = result.Program;
+        previewTime = 0;
+        previewRunning = true;
+        OutputBox.AppendText("  [OK] Compiles natively (GLSL 4.30)\n");
+        StatusText.Text = "Check passed: preview running";
     }
 
     void SetWallpaper_Click(object sender, RoutedEventArgs e)
@@ -60,6 +124,10 @@ public partial class MainWindow : Window
         if (exe == null) return;
 
         StopWallpaper();          // only one wallpaper at a time
+
+        // Only the wallpaper should use the GPU now
+        previewRunning = false;
+        PreviewInfo.Text = "Preview paused: the shader is running as your wallpaper";
         WriteShaderFiles();
         OutputBox.Text = "";
 

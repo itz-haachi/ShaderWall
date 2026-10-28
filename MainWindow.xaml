@@ -1,7 +1,8 @@
 ﻿<Window x:Class="ShaderWallApp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="ShaderWall" Width="1100" Height="740" MinWidth="760" MinHeight="520"
+        xmlns:gl="clr-namespace:OpenTK.Wpf;assembly=GLWpfControl"
+        Title="ShaderWall" Width="1280" Height="780" MinWidth="980" MinHeight="520"
         Background="White" FontFamily="Segoe UI" FontSize="14">
 
     <Window.Resources>
@@ -53,20 +54,37 @@
                        Foreground="#6B6B6B" Margin="0,4,0,0"/>
         </StackPanel>
 
-        <!-- Code tabs -->
-        <TabControl Grid.Row="1" Margin="0,16,0,0" BorderBrush="#E2E2E2">
-            <TabItem Header="Image" Padding="14,6">
-                <TextBox x:Name="ImageBox" Style="{StaticResource Code}"/>
-            </TabItem>
-            <TabItem Header="Common" Padding="14,6">
-                <TextBox x:Name="CommonBox" Style="{StaticResource Code}"/>
-            </TabItem>
-        </TabControl>
+        <!-- Code tabs (left) and live preview (right) -->
+        <Grid Grid.Row="1" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="24"/>
+                <ColumnDefinition Width="540"/>
+            </Grid.ColumnDefinitions>
+
+            <TabControl Grid.Column="0" BorderBrush="#E2E2E2">
+                <TabItem Header="Image" Padding="14,6">
+                    <TextBox x:Name="ImageBox" Style="{StaticResource Code}"/>
+                </TabItem>
+                <TabItem Header="Common" Padding="14,6">
+                    <TextBox x:Name="CommonBox" Style="{StaticResource Code}"/>
+                </TabItem>
+            </TabControl>
+
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="LIVE PREVIEW" FontSize="11" FontWeight="Bold" Foreground="#6B6B6B" Margin="0,4,0,8"/>
+                <Border Background="Black" CornerRadius="8" Height="304" ClipToBounds="True">
+                    <gl:GLWpfControl x:Name="Preview" Render="Preview_OnRender"/>
+                </Border>
+                <TextBlock x:Name="PreviewInfo" Text="Starting preview..." FontSize="12"
+                           Foreground="#6B6B6B" Margin="0,8,0,0"/>
+            </StackPanel>
+        </Grid>
 
         <!-- Buttons + settings -->
         <DockPanel Grid.Row="2" Margin="0,14,0,12" LastChildFill="True">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button Content="Check" Style="{StaticResource Secondary}" Click="Check_Click"/>
+                <Button Content="Check + preview" Style="{StaticResource Secondary}" Click="Check_Click"/>
                 <Button x:Name="StopButton" Content="Stop wallpaper" Style="{StaticResource Secondary}"
                         Click="Stop_Click" IsEnabled="False"/>
                 <Button Content="Set as wallpaper" Style="{StaticResource Primary}" Click="SetWallpaper_Click"/>
@@ -86,6 +104,6 @@
         <TextBox x:Name="OutputBox" Grid.Row="3" IsReadOnly="True" FontFamily="Consolas" FontSize="13"
                  Background="#F4F4F4" BorderThickness="0" Padding="10"
                  VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"
-                 Text="Press Check to test your shader, or Set as wallpaper to run it."/>
+                 Text="Paste a shader, then press Check + preview."/>
     </Grid>
 </Window>

@@ -1,4 +1,5 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using System.Linq;
+using OpenTK.Graphics.OpenGL4;
 
 record CompileResult(int Program, bool Ok, string Log);
 

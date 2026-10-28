@@ -83,7 +83,8 @@ var settings = new NativeWindowSettings()
 {
     ClientSize = new Vector2i(1280, 720),
     Title = "ShaderWall",
-    StartVisible = !checkOnly   // check-only uses an invisible window
+    StartVisible = !checkOnly,  // check-only uses an invisible window
+    StartFocused = false        // don't steal focus from the app (or whatever you're using)
 };
 var gameSettings = new GameWindowSettings() { UpdateFrequency = fpsCap };
 using var window = new ShaderWindow(gameSettings, settings, fragmentCode);

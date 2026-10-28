@@ -15,6 +15,7 @@ class ShaderWindow : GameWindow
     public bool checkOnly = false; // --check-only: compile, report, exit
 
     readonly string fragmentCode;
+    IntPtr myWindow;   // our own window handle, set when we attach to the desktop
 
     public ShaderWindow(GameWindowSettings g, NativeWindowSettings n, string fragmentCode) : base(g, n)
     {
@@ -46,7 +47,7 @@ class ShaderWindow : GameWindow
 
         // 2. Remember the user's wallpaper, then move this window behind the icons
         WallpaperBackup.Save();
-        IntPtr myWindow = Win32.FindWindow(null, Title);
+        myWindow = Win32.FindWindow(null, Title);
         DesktopAttacher.Attach(myWindow);
     }
 
@@ -66,7 +67,7 @@ class ShaderWindow : GameWindow
             return;
         }
 
-        if (PowerManager.IsWallpaperHidden())
+        if (PowerManager.IsWallpaperHidden(myWindow))
         {
             Thread.Sleep(500);
             return;

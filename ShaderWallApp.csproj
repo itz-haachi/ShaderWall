@@ -9,4 +9,15 @@
     <RootNamespace>ShaderWallApp</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="OpenTK" Version="4.9.4" />
+    <PackageReference Include="OpenTK.GLWpfControl" Version="4.3.6" />
+  </ItemGroup>
+
+  <!-- Use the engine's own shader code for the preview (linked, not copied) -->
+  <ItemGroup>
+    <Compile Include="..\ShaderBuilder.cs" Link="Engine\ShaderBuilder.cs" />
+    <Compile Include="..\CompatibilityChecker.cs" Link="Engine\CompatibilityChecker.cs" />
+  </ItemGroup>
+
 </Project>
