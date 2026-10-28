@@ -12,6 +12,7 @@ class ShaderWindow : GameWindow
     double fpsTimer = 0;
     public volatile bool quitRequested = false;
     public bool showFps = false;   // turned on with: dotnet run -- --show-fps
+    public bool checkOnly = false; // --check-only: compile, report, exit
 
     readonly string fragmentCode;
 
@@ -30,10 +31,16 @@ class ShaderWindow : GameWindow
         {
             CompatibilityChecker.PrintCompileErrors(result.Log);
             Console.WriteLine("The shader didn't compile, so your wallpaper was not changed.");
+            Environment.ExitCode = 1;
             Close();
             return;
         }
         Console.WriteLine("  [OK] Compiles natively (GLSL 4.30)");
+        if (checkOnly)
+        {
+            Close();
+            return;
+        }
         program = result.Program;
         vao = GL.GenVertexArray();
 

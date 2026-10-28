@@ -7,6 +7,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!-- The WPF app lives in the App folder and is a separate project -->
+  <ItemGroup>
+    <Compile Remove="App\**" />
+    <None Remove="App\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="OpenTK" Version="4.9.3" />
   </ItemGroup>

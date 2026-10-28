@@ -8,14 +8,20 @@ using OpenTK.Mathematics;
 //   dotnet run -- https://www.shadertoy.com/view/XXXXXX 60  -> both
 //   dotnet run -- samples/sample.json            -> TEST MODE: a saved API reply, no key needed
 //   add --show-fps to any of these to print the frame rate every second
+//   --check-only  : check + compile in a hidden window, then exit (exit code 0 = OK, 1 = problem)
+//   --listen      : stop cleanly when another program sends "quit" (used by the ShaderWall app)
 
 int fpsCap = 30;
 string? url = null;
 string? jsonFile = null;
 bool showFps = false;
+bool checkOnly = false;
+bool listen = false;
 foreach (string a in args)
 {
     if (a == "--show-fps") showFps = true;
+    else if (a == "--check-only") checkOnly = true;
+    else if (a == "--listen") listen = true;
     else if (int.TryParse(a, out int n)) fpsCap = n;
     else if (a.Contains("shadertoy.com")) url = a;
     else if (a.EndsWith(".json")) jsonFile = a;
@@ -64,7 +70,11 @@ else
 // 2. Check it before running (compiling is checked once the window exists)
 CheckReport report = CompatibilityChecker.CheckSource(imageCode, commonCode, multiPass);
 report.Print();
-if (!report.CanRun) return;
+if (!report.CanRun)
+{
+    Environment.ExitCode = 1;
+    return;
+}
 
 string fragmentCode = ShaderBuilder.Build(imageCode, commonCode);
 
@@ -72,11 +82,32 @@ string fragmentCode = ShaderBuilder.Build(imageCode, commonCode);
 var settings = new NativeWindowSettings()
 {
     ClientSize = new Vector2i(1280, 720),
-    Title = "ShaderWall"
+    Title = "ShaderWall",
+    StartVisible = !checkOnly   // check-only uses an invisible window
 };
 var gameSettings = new GameWindowSettings() { UpdateFrequency = fpsCap };
 using var window = new ShaderWindow(gameSettings, settings, fragmentCode);
 window.showFps = showFps;
+window.checkOnly = checkOnly;
+
+// When started by the ShaderWall app: a background thread waits for a "quit" line
+if (listen)
+{
+    var listener = new Thread(() =>
+    {
+        while (true)
+        {
+            string? line = Console.ReadLine();
+            if (line == null || line.Trim() == "quit")   // null = the app closed
+            {
+                window.quitRequested = true;
+                break;
+            }
+        }
+    });
+    listener.IsBackground = true;   // don't keep the program alive just for this thread
+    listener.Start();
+}
 
 // Ctrl+C asks the app to close cleanly instead of killing it
 Console.CancelKeyPress += (sender, e) =>
