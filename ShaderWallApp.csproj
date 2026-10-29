@@ -6,12 +6,20 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <!-- WPF has no tray icon, so we borrow NotifyIcon from Windows Forms -->
+    <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>ShaderWallApp</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="OpenTK" Version="4.9.4" />
     <PackageReference Include="OpenTK.GLWpfControl" Version="4.3.6" />
+  </ItemGroup>
+
+  <!-- Don't import Windows Forms names everywhere: they clash with WPF's (Button, MessageBox...) -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
   </ItemGroup>
 
   <!-- Use the engine's own shader code for the preview (linked, not copied) -->

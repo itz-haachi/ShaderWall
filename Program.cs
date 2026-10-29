@@ -9,7 +9,7 @@ using OpenTK.Mathematics;
 //   dotnet run -- samples/sample.json            -> TEST MODE: a saved API reply, no key needed
 //   add --show-fps to any of these to print the frame rate every second
 //   --check-only  : check + compile in a hidden window, then exit (exit code 0 = OK, 1 = problem)
-//   --listen      : stop cleanly when another program sends "quit" (used by the ShaderWall app)
+//   --listen      : obey "quit", "pause" and "resume" lines from another program (used by the ShaderWall app)
 
 int fpsCap = 30;
 string? url = null;
@@ -104,6 +104,8 @@ if (listen)
                 window.quitRequested = true;
                 break;
             }
+            if (line.Trim() == "pause") window.paused = true;
+            if (line.Trim() == "resume") window.paused = false;
         }
     });
     listener.IsBackground = true;   // don't keep the program alive just for this thread

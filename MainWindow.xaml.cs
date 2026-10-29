@@ -48,7 +48,9 @@ public partial class MainWindow : Window
         PreviewInfo.Text = "Press Check + preview to run the preview";
 
         LibraryList.ItemsSource = library;
-        Closing += (sender, e) => StopWallpaper();   // closing the app stops the wallpaper cleanly
+
+        SetupTray();                // MainWindow.Tray.cs
+        Closing += MainWindow_Closing;
     }
 
     // ---------- buttons ----------
@@ -126,7 +128,10 @@ public partial class MainWindow : Window
         StatusText.Text = "Check passed: preview running";
     }
 
-    void SetWallpaper_Click(object sender, RoutedEventArgs e)
+    void SetWallpaper_Click(object sender, RoutedEventArgs e) => StartWallpaper();
+
+    // Runs whatever is in the Image / Common tabs as the wallpaper
+    void StartWallpaper()
     {
         string? exe = FindEngine();
         if (exe == null) return;
@@ -158,12 +163,17 @@ public partial class MainWindow : Window
         {
             StatusText.Text = "Not running";
             StopButton.IsEnabled = false;
+            wallpaperPaused = false;
+            UpdateTray();
         });
 
         engine.Start();
         engine.BeginOutputReadLine();
         StatusText.Text = "Wallpaper running";
         StopButton.IsEnabled = true;
+        wallpaperPaused = false;
+        runningName = NameBox.Text.Trim() == "" ? "Unsaved shader" : NameBox.Text.Trim();
+        UpdateTray();
     }
 
     void Stop_Click(object sender, RoutedEventArgs e) => StopWallpaper();

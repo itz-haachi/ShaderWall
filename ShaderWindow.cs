@@ -11,6 +11,7 @@ class ShaderWindow : GameWindow
     int frames = 0;
     double fpsTimer = 0;
     public volatile bool quitRequested = false;
+    public volatile bool paused = false;   // set from the tray menu: keep the last frame, draw nothing new
     public bool showFps = false;   // turned on with: dotnet run -- --show-fps
     public bool checkOnly = false; // --check-only: compile, report, exit
 
@@ -64,6 +65,12 @@ class ShaderWindow : GameWindow
         if (quitRequested)
         {
             Close();
+            return;
+        }
+
+        if (paused)
+        {
+            Thread.Sleep(100);
             return;
         }
 
