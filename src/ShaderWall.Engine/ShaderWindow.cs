@@ -13,6 +13,7 @@ class ShaderWindow : GameWindow
     public volatile bool quitRequested = false;
     public volatile bool paused = false;   // set from the tray menu: keep the last frame, draw nothing new
     public volatile bool reloadRequested = false;   // "reload": compile shader.glsl again and swap it in
+    public volatile float speed = 1f;        // 0.25-3: how fast iTime moves (1 = normal)
     public volatile float renderScale = 1f; // 0.1-1: draw at this fraction of the screen size, then stretch
 
     // The smaller hidden image we draw into when renderScale < 1 (a framebuffer with a texture attached)
@@ -92,7 +93,7 @@ class ShaderWindow : GameWindow
             return;
         }
 
-        time += MathF.Min((float)args.Time, 0.1f);
+        time += MathF.Min((float)args.Time, 0.1f) * speed;   // speed stretches or squeezes the animation clock
 
         // Count frames and print the FPS once per second
         frames++;

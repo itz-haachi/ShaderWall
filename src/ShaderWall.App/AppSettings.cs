@@ -8,6 +8,7 @@ public class AppSettings
 {
     public int FpsCap { get; set; } = 30;
     public int RenderScale { get; set; } = 100;   // percent of full resolution
+    public int Speed { get; set; } = 100;         // percent of normal animation speed
 
     // Slideshow: move to the next library shader on these events
     public bool SlideshowOnSleep { get; set; }   // switch as the PC goes to sleep

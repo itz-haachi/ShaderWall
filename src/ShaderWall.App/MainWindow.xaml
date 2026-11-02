@@ -616,13 +616,15 @@
                                     </Border>
                                     <Border Style="{StaticResource Row}">
                                         <DockPanel>
-                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" IsEnabled="False" Opacity="0.45">
-                                                <Slider Width="200" Minimum="0.25" Maximum="3" Value="1" VerticalAlignment="Center"/>
-                                                <TextBlock Text="1.0×" Width="44" TextAlignment="Right" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Slider x:Name="SpeedSlider" Width="200" Minimum="25" Maximum="300" Value="100"
+                                                        TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                                                        ValueChanged="SpeedSlider_ValueChanged"/>
+                                                <TextBlock x:Name="SpeedText" Text="1×" Width="48" TextAlignment="Right" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                             </StackPanel>
                                             <StackPanel>
                                                 <TextBlock Text="Shader speed" FontWeight="Medium"/>
-                                                <TextBlock Text="Multiplies iTime. Coming soon." Style="{StaticResource Desc}"/>
+                                                <TextBlock Text="How fast the animation plays. Changes the wallpaper and the preview straight away." Style="{StaticResource Desc}"/>
                                             </StackPanel>
                                         </DockPanel>
                                     </Border>

@@ -9,6 +9,7 @@ bool showFps = false;
 bool checkOnly = false;
 bool listen = false;
 float renderScale = 1f;
+float speed = 1f;
 foreach (string a in args)
 {
     if (a == "--show-fps") showFps = true;
@@ -16,6 +17,8 @@ foreach (string a in args)
     else if (a == "--listen") listen = true;
     else if (a.StartsWith("--scale=") && int.TryParse(a["--scale=".Length..], out int percent))
         renderScale = Math.Clamp(percent, 10, 100) / 100f;
+    else if (a.StartsWith("--speed=") && int.TryParse(a["--speed=".Length..], out int speedPercent))
+        speed = Math.Clamp(speedPercent, 10, 1000) / 100f;
     else if (int.TryParse(a, out int n)) fpsCap = n;
     else if (a.Contains("shadertoy.com")) url = a;
     else if (a.EndsWith(".json")) jsonFile = a;
@@ -85,6 +88,7 @@ using var window = new ShaderWindow(gameSettings, settings, fragmentCode);
 window.showFps = showFps;
 window.checkOnly = checkOnly;
 window.renderScale = renderScale;
+window.speed = speed;
 
 // When started by the ShaderWall app: a background thread waits for a "quit" line
 if (listen)
@@ -104,6 +108,8 @@ if (listen)
             if (line.Trim() == "reload") window.reloadRequested = true;   // switch shader without restarting
             if (line.Trim().StartsWith("scale ") && int.TryParse(line.Trim()[6..], out int percent))
                 window.renderScale = Math.Clamp(percent, 10, 100) / 100f;   // change it while running
+            if (line.Trim().StartsWith("speed ") && int.TryParse(line.Trim()[6..], out int speedPercent))
+                window.speed = Math.Clamp(speedPercent, 10, 1000) / 100f;
         }
     });
     listener.IsBackground = true;   // don't keep the program alive just for this thread

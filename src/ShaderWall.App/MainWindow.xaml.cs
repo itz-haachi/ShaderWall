@@ -111,6 +111,8 @@ public partial class MainWindow : Window
         StartupSwitch.IsChecked = StartupManager.IsEnabled();
         ScaleSlider.Value = settings.RenderScale;
         ScaleText.Text = settings.RenderScale + "%";
+        SpeedSlider.Value = settings.Speed;
+        SpeedText.Text = SpeedLabel(settings.Speed);
         ApplySlideshowSettingsToControls();
         applyingSettings = false;
 
@@ -290,7 +292,7 @@ public partial class MainWindow : Window
         GL.Clear(ClearBufferMask.ColorBufferBit);
         if (!previewRunning || previewProgram == 0) return;   // nothing to show: a black box
 
-        if (!previewPaused) previewTime += (float)Math.Min(delta.TotalSeconds, 0.1);
+        if (!previewPaused) previewTime += (float)Math.Min(delta.TotalSeconds, 0.1) * settings.Speed / 100f;
         GL.UseProgram(previewProgram);
         GL.Uniform3(GL.GetUniformLocation(previewProgram, "iResolution"), (float)w, (float)h, 1f);
         GL.Uniform1(GL.GetUniformLocation(previewProgram, "iTime"), previewTime);
@@ -402,7 +404,7 @@ public partial class MainWindow : Window
         WriteShaderFiles();
         OutputBox.Text = "";
 
-        var info = new ProcessStartInfo(exe, $"--listen {SelectedFps()} --scale={settings.RenderScale}")
+        var info = new ProcessStartInfo(exe, $"--listen {SelectedFps()} --scale={settings.RenderScale} --speed={settings.Speed}")
         {
             WorkingDirectory = workDir,
             RedirectStandardInput = true,    // so we can send "quit", "pause", "resume"
@@ -526,7 +528,8 @@ public partial class MainWindow : Window
         CardDot.Opacity = running && !wallpaperPaused ? 1 : 0.35;
         CardShader.Text = running ? runningName : "Pick a shader to start";
         CardInfo.Text = (SelectedFps() == 0 ? "no FPS cap" : $"{SelectedFps()} fps")
-                        + (settings.RenderScale < 100 ? $" · {settings.RenderScale}%" : "");
+                        + (settings.RenderScale < 100 ? $" · {settings.RenderScale}%" : "")
+                        + (settings.Speed != 100 ? $" · {SpeedLabel(settings.Speed)}" : "");
         CardPause.Content = wallpaperPaused ? "Resume" : "Pause";
         CardActions.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
 
@@ -732,6 +735,25 @@ public partial class MainWindow : Window
             engine.StandardInput.WriteLine("scale " + percent);
         UpdateTray();
     }
+
+    void SpeedSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (SpeedText == null) return;   // still loading
+        int percent = (int)Math.Round(SpeedSlider.Value);
+        SpeedText.Text = SpeedLabel(percent);
+        if (applyingSettings) return;
+
+        settings.Speed = percent;   // the preview reads this every frame
+        settings.Save();
+
+        // Change the running wallpaper immediately
+        if (engine != null && !engine.HasExited)
+            engine.StandardInput.WriteLine("speed " + percent);
+        UpdateTray();
+    }
+
+    // 100 -> "1×", 150 -> "1.5×", 25 -> "0.25×"
+    static string SpeedLabel(int percent) => (percent / 100.0).ToString("0.##") + "×";
 
     void StartupSwitch_Changed(object sender, RoutedEventArgs e)
     {
