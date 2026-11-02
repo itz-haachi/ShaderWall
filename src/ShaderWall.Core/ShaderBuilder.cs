@@ -59,6 +59,22 @@ public static class ShaderBuilder
         return new string(code.Where(c => c < 128).ToArray());
     }
 
+    // Send Shadertoy's per-frame inputs to the shader (call after GL.UseProgram).
+    // Used by both the wallpaper engine and the app's preview, so they always match.
+    public static void SetInputs(int program, int width, int height, float time, float timeDelta, int frame, float frameRate)
+    {
+        GL.Uniform3(GL.GetUniformLocation(program, "iResolution"), (float)width, (float)height, 1f);
+        GL.Uniform1(GL.GetUniformLocation(program, "iTime"), time);             // seconds since the shader started
+        GL.Uniform1(GL.GetUniformLocation(program, "iTimeDelta"), timeDelta);   // seconds since the last frame
+        GL.Uniform1(GL.GetUniformLocation(program, "iFrame"), frame);           // 0, 1, 2, ... frames drawn so far
+        GL.Uniform1(GL.GetUniformLocation(program, "iFrameRate"), frameRate);   // frames per second
+
+        // Like Shadertoy: year, month (0 = January), day of the month, seconds since midnight
+        DateTime now = DateTime.Now;
+        GL.Uniform4(GL.GetUniformLocation(program, "iDate"),
+                    (float)now.Year, (float)(now.Month - 1), (float)now.Day, (float)now.TimeOfDay.TotalSeconds);
+    }
+
     // Compile both shaders and link them. Reports failure instead of continuing with a broken program.
     public static CompileResult Compile(string fragmentCode)
     {

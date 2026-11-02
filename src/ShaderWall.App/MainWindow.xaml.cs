@@ -52,6 +52,9 @@ public partial class MainWindow : Window
     int previewProgram;
     int previewVao;
     float previewTime;
+    float previewDelta;       // iTimeDelta for the preview
+    int previewFrame;         // iFrame for the preview
+    float previewFrameRate;   // iFrameRate for the preview (smoothed)
     bool previewRunning;    // true after Check + preview; false while the wallpaper runs
     bool previewPaused;     // the pause button on the preview
     double infoTimer;       // update the preview's text 4 times a second, not every frame
@@ -292,12 +295,16 @@ public partial class MainWindow : Window
         GL.Clear(ClearBufferMask.ColorBufferBit);
         if (!previewRunning || previewProgram == 0) return;   // nothing to show: a black box
 
-        if (!previewPaused) previewTime += (float)Math.Min(delta.TotalSeconds, 0.1) * settings.Speed / 100f;
+        previewDelta = previewPaused ? 0f : (float)Math.Min(delta.TotalSeconds, 0.1) * settings.Speed / 100f;
+        previewTime += previewDelta;
+        float instant = delta.TotalSeconds > 0 ? (float)(1.0 / delta.TotalSeconds) : 0f;
+        previewFrameRate = previewFrameRate == 0 ? instant : previewFrameRate * 0.9f + instant * 0.1f;
+
         GL.UseProgram(previewProgram);
-        GL.Uniform3(GL.GetUniformLocation(previewProgram, "iResolution"), (float)w, (float)h, 1f);
-        GL.Uniform1(GL.GetUniformLocation(previewProgram, "iTime"), previewTime);
+        ShaderBuilder.SetInputs(previewProgram, w, h, previewTime, previewDelta, previewFrame, previewFrameRate);
         GL.BindVertexArray(previewVao);
         GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
+        if (!previewPaused) previewFrame++;
 
         if (thumbnailFor != null)
         {
@@ -335,6 +342,7 @@ public partial class MainWindow : Window
         if (previewProgram != 0) GL.DeleteProgram(previewProgram);
         previewProgram = result.Program;
         previewTime = 0;
+        previewFrame = 0;
         previewRunning = true;
         previewPaused = false;
         PreviewPauseIcon.Text = "";

@@ -6,6 +6,9 @@ using OpenTK.Graphics.OpenGL4;
 class ShaderWindow : GameWindow
 {
     float time = 0;
+    float timeDelta = 0;   // iTimeDelta
+    int frame = 0;         // iFrame
+    float frameRate = 0;   // iFrameRate (smoothed)
     int program;
     int vao;
     int frames = 0;
@@ -93,7 +96,13 @@ class ShaderWindow : GameWindow
             return;
         }
 
-        time += MathF.Min((float)args.Time, 0.1f) * speed;   // speed stretches or squeezes the animation clock
+        float dt = MathF.Min((float)args.Time, 0.1f) * speed;   // speed stretches or squeezes the animation clock
+        time += dt;
+        timeDelta = dt;
+
+        // Frame rate, smoothed so it doesn't jump around from frame to frame
+        float instant = args.Time > 0 ? (float)(1.0 / args.Time) : 0f;
+        frameRate = frameRate == 0 ? instant : frameRate * 0.9f + instant * 0.1f;
 
         // Count frames and print the FPS once per second
         frames++;
@@ -130,6 +139,7 @@ class ShaderWindow : GameWindow
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         }
 
+        frame++;
         SwapBuffers();
     }
 
@@ -159,6 +169,7 @@ class ShaderWindow : GameWindow
         GL.DeleteProgram(program);   // free the old shader on the GPU
         program = result.Program;
         time = 0;
+        frame = 0;
         paused = false;
         Console.WriteLine("  [OK] Compiles natively (GLSL 4.30)");
         Console.WriteLine("Reloaded.");
@@ -171,8 +182,7 @@ class ShaderWindow : GameWindow
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         GL.Clear(ClearBufferMask.ColorBufferBit);
         GL.UseProgram(program);
-        GL.Uniform3(GL.GetUniformLocation(program, "iResolution"), (float)w, (float)h, 1.0f);   // the shader sees the smaller size
-        GL.Uniform1(GL.GetUniformLocation(program, "iTime"), time);
+        ShaderBuilder.SetInputs(program, w, h, time, timeDelta, frame, frameRate);   // w x h: the shader sees the smaller size
         GL.BindVertexArray(vao);
         GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
     }
