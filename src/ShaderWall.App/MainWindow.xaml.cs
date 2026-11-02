@@ -652,20 +652,58 @@ public partial class MainWindow : Window
     void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         SearchHint.Visibility = SearchBox.Text == "" ? Visibility.Visible : Visibility.Collapsed;
-        CollectionViewSource.GetDefaultView(library).Refresh();
+        RefreshLibraryView();
     }
 
+    void Filter_Checked(object sender, RoutedEventArgs e)
+    {
+        if (LibraryList == null) return;   // still loading
+        RefreshLibraryView();
+    }
+
+    // The star on a card
+    void Star_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: SavedShader shader }) return;
+        shader.Favourite = !shader.Favourite;
+        ShaderLibrary.Save(library);
+        RefreshLibraryView();   // e.g. un-starring while "Favourites" is selected hides the card
+    }
+
+    // Re-run the filter over every card, then update the "nothing here" message
+    void RefreshLibraryView()
+    {
+        CollectionViewSource.GetDefaultView(library).Refresh();
+        UpdateEmptyText();
+    }
+
+    // The search box AND the selected chip both have to match
     bool MatchesSearch(object item)
     {
+        var shader = (SavedShader)item;
+        if (FilterFav?.IsChecked == true && !shader.Favourite) return false;
+        if (FilterAttention?.IsChecked == true && !shader.NeedsAttention) return false;
+
         string text = SearchBox?.Text.Trim() ?? "";
-        return text == "" || ((SavedShader)item).Name.Contains(text, StringComparison.OrdinalIgnoreCase);
+        return text == "" || shader.Name.Contains(text, StringComparison.OrdinalIgnoreCase);
+    }
+
+    void UpdateEmptyText()
+    {
+        bool nothingShown = CollectionViewSource.GetDefaultView(library).IsEmpty;
+        LibraryEmptyText.Text =
+            library.Count == 0 ? "No shaders saved yet. Add one, preview it, then press Save to library." :
+            FilterFav.IsChecked == true && SearchBox.Text.Trim() == "" ? "No favourites yet. Click the star on a card to add one." :
+            FilterAttention.IsChecked == true && SearchBox.Text.Trim() == "" ? "Nothing needs attention: every shader passes the check." :
+            "No shaders match your search.";
+        LibraryEmptyText.Visibility = nothingShown ? Visibility.Visible : Visibility.Collapsed;
     }
 
     void UpdateLibraryCount()
     {
         int n = library.Count;
         LibraryCountText.Text = (n == 1 ? "1 shader saved" : $"{n} shaders saved") + " · click one to make it your wallpaper";
-        LibraryEmptyText.Visibility = n == 0 ? Visibility.Visible : Visibility.Collapsed;
+        UpdateEmptyText();
     }
 
     // ================= displays + settings =================

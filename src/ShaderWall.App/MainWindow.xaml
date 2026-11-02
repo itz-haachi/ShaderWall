@@ -117,6 +117,32 @@
         </Style>
 
         <!-- ============ Editor tabs (Image / Common) ============ -->
+        <!-- ============ Library filter chips ============ -->
+        <Style x:Key="Chip" TargetType="RadioButton">
+            <Setter Property="GroupName" Value="Filter"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#3A3A3A"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd" Height="34" Padding="14,0" CornerRadius="17" BorderBrush="#E2E2E2" BorderThickness="1" Background="White">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#F4F4F4"/></Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#111111"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#111111"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="EdTab" TargetType="RadioButton">
             <Setter Property="GroupName" Value="Editor"/>
             <Setter Property="Foreground" Value="#6B6B6B"/>
@@ -485,17 +511,12 @@
                             </Grid>
                         </DockPanel>
                     </Border>
-                    <Border Background="#111111" CornerRadius="17" Height="34" Padding="14,0" Margin="10,0,0,0">
-                        <TextBlock Text="All" Foreground="White" FontSize="13" VerticalAlignment="Center"/>
-                    </Border>
-                    <Border BorderBrush="#E2E2E2" BorderThickness="1" CornerRadius="17" Height="34" Padding="14,0" Margin="8,0,0,0" Opacity="0.5" ToolTip="Coming soon">
-                        <TextBlock Text="Favourites" FontSize="13" VerticalAlignment="Center"/>
-                    </Border>
+                    <RadioButton x:Name="FilterAll" Content="All" Style="{StaticResource Chip}" Margin="10,0,0,0"
+                                 IsChecked="True" Checked="Filter_Checked"/>
+                    <RadioButton x:Name="FilterFav" Content="Favourites" Style="{StaticResource Chip}" Checked="Filter_Checked"/>
+                    <RadioButton x:Name="FilterAttention" Content="Needs attention" Style="{StaticResource Chip}" Checked="Filter_Checked"/>
                     <Border BorderBrush="#E2E2E2" BorderThickness="1" CornerRadius="17" Height="34" Padding="14,0" Margin="8,0,0,0" Opacity="0.5" ToolTip="Coming soon">
                         <TextBlock Text="Lightweight" FontSize="13" VerticalAlignment="Center"/>
-                    </Border>
-                    <Border BorderBrush="#E2E2E2" BorderThickness="1" CornerRadius="17" Height="34" Padding="14,0" Margin="8,0,0,0" Opacity="0.5" ToolTip="Coming soon">
-                        <TextBlock Text="Needs attention" FontSize="13" VerticalAlignment="Center"/>
                     </Border>
                 </StackPanel>
 
@@ -540,10 +561,22 @@
                                                 <TextBlock Text="Active" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
                                             </StackPanel>
                                         </Border>
+                                        <Border Visibility="{Binding AttentionVisibility}" Background="White" CornerRadius="8"
+                                                Padding="9,5" Margin="10" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE7BA;" FontFamily="{StaticResource Icons}" FontSize="12"
+                                                           VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                <TextBlock Text="{Binding AttentionText}" FontSize="12" FontWeight="SemiBold"/>
+                                            </StackPanel>
+                                        </Border>
                                     </Grid>
                                     <DockPanel Margin="14,12">
                                         <Button DockPanel.Dock="Right" Content="•••" Style="{StaticResource LinkBtn}" Foreground="#6B6B6B"
                                                 FontSize="16" Tag="{Binding}" Click="CardMenu_Click"/>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource LinkBtn}" Tag="{Binding}" Click="Star_Click"
+                                                Margin="0,0,14,0" ToolTip="Favourite">
+                                            <TextBlock Text="{Binding StarGlyph}" FontFamily="{StaticResource Icons}" FontSize="15" Foreground="#111111"/>
+                                        </Button>
                                         <StackPanel>
                                             <TextBlock Text="{Binding Name}" FontSize="14.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Text="{Binding SavedText}" FontSize="12" Foreground="#6B6B6B" Margin="0,2,0,0"/>

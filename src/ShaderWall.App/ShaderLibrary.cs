@@ -13,8 +13,66 @@ namespace ShaderWallApp;
 public class SavedShader : INotifyPropertyChanged
 {
     public string Name { get; set; } = "";
-    public string Image { get; set; } = "";
-    public string Common { get; set; } = "";
+
+    // When the code changes, the "needs attention" result must be worked out again
+    string image = "";
+    public string Image
+    {
+        get => image;
+        set { image = value; attentionChecked = false; AttentionChanged(); }
+    }
+
+    string common = "";
+    public string Common
+    {
+        get => common;
+        set { common = value; attentionChecked = false; AttentionChanged(); }
+    }
+
+    bool favourite;
+    public bool Favourite
+    {
+        get => favourite;
+        set { favourite = value; Changed(nameof(Favourite)); Changed(nameof(StarGlyph)); }
+    }
+
+    // Filled star or outline star (Segoe Fluent Icons)
+    [JsonIgnore] public string StarGlyph => favourite ? "\uE735" : "\uE734";
+
+    // "Needs attention": the first problem or warning from the compatibility check, or "" if none.
+    // Worked out once and remembered (attentionChecked), because the check reads the whole shader.
+    string attention = "";
+    bool attentionChecked;
+    [JsonIgnore]
+    public string AttentionText
+    {
+        get
+        {
+            if (!attentionChecked)
+            {
+                attention = "";
+                CheckReport report = CompatibilityChecker.CheckSource(image, common, null);
+                foreach (var (mark, text) in report.Items)
+                {
+                    if (mark == "OK") continue;
+                    int colon = text.IndexOf(':');
+                    attention = colon > 0 ? text[..colon] : text;
+                    break;
+                }
+                attentionChecked = true;
+            }
+            return attention;
+        }
+    }
+    [JsonIgnore] public bool NeedsAttention => AttentionText != "";
+    [JsonIgnore] public Visibility AttentionVisibility => NeedsAttention ? Visibility.Visible : Visibility.Collapsed;
+
+    void AttentionChanged()
+    {
+        Changed(nameof(AttentionText));
+        Changed(nameof(NeedsAttention));
+        Changed(nameof(AttentionVisibility));
+    }
 
     DateTime saved;
     public DateTime Saved
