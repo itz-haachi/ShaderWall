@@ -70,4 +70,24 @@ static class Win32
 
     [DllImport("winmm.dll")]
     public static extern uint timeEndPeriod(uint milliseconds);
+
+    // ---- monitors ----
+    public const uint MONITOR_DEFAULTTOPRIMARY = 1;
+    public const uint MONITOR_DEFAULTTONEAREST = 2;
+
+    // Which monitor is this window (mostly) on? Returns a handle to that monitor.
+    [DllImport("user32.dll")]
+    public static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MONITORINFO
+    {
+        public int cbSize;        // must be set to the struct's size before calling
+        public RECT rcMonitor;    // the whole monitor, in desktop coordinates
+        public RECT rcWork;       // the monitor minus the taskbar
+        public uint dwFlags;
+    }
+
+    [DllImport("user32.dll")]
+    public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO info);
 }
