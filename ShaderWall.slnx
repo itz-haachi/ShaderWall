@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ShaderWall.Core/ShaderWall.Core.csproj" />
+    <Project Path="src/ShaderWall.Engine/ShaderWall.Engine.csproj" />
+    <Project Path="src/ShaderWall.App/ShaderWall.App.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,12 @@
+<!-- Settings shared by every project under this folder (MSBuild picks this file up automatically) -->
+<Project>
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <Product>ShaderWall</Product>
+    <Company>Amulyapreet</Company>
+    <Authors>Amulyapreet</Authors>
+    <Copyright>Copyright (c) 2026 Amulyapreet</Copyright>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>
